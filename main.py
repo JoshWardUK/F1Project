@@ -11,16 +11,15 @@ api_url = "https://api.jolpi.ca/ergast/f1"
 
 api_client = ac.APIClient(base_url=api_url)
 
-endpoint_location = ap.APIEndpoints(base_url=api_url)
+endpoint_location = ap.APIEndpoints(base_url=api_url, year=2007)
 
-endpoint = endpoint_location.get_seasons_endpoint()
+endpoint = endpoint_location.get_constructorstandings_endpoint()
 
 # Fetch data from the API
 data = api_client.fetch_data(endpoint=endpoint)
 
 prep_df = parser.JSONPolarsParser(data)
-df = prep_df.get_season_dataframe()
-
+df = prep_df.get_constructorstandings_dataframe()
 
 # Access the data from memory
 if data:
