@@ -15,9 +15,14 @@ class APIEndpoints:
         else:
             return f"seasons/?limit=1"
 
-    
     def get_constructorstandings_endpoint(self):
         if self.limit:
             return f"{self.year}/constructorstandings/?limit={self.limit}"
         else:
             return f"{self.year}/constructorstandings/?limit=1"
+
+    def get_driverstandings_endpoint(self):
+        if self.limit:
+            return f"{self.year}/driverstandings/?limit={self.limit}"
+        else:
+            return f"{self.year}/driverstandings/?limit=1"
