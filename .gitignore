@@ -7,3 +7,4 @@ test.json
 icehouse
 /landing_zone*
 /testpy*
+.DS_Store
