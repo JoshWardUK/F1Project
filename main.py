@@ -5,8 +5,6 @@ import json_polars_parser as parser
 import data_models as dm
 import helpers as hp
 import time
-
-
 from deltalake import DeltaTable
 from deltalake.writer import write_deltalake
 import duckdb as db
@@ -98,24 +96,48 @@ def get_driver_data():
 
         time.sleep(5)
 
+def get_races_data():
+
+    """
+    Save race data into a Delta table
+    """
+
+    # Step 3 - Get Races Data
+
+    # Get all seasons for the given driver
+    driver_seaons_df = db.execute_query(f"SELECT DISTINCT Season FROM DRIVERS WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
+
+    # Use if we need driverid
+    #driver_id_df = db.execute_query(f"SELECT DISTINCT driverId FROM DRIVERS WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
+    #driver_id = [x for x in driver_id_df['driverId']]
+
+    season_dates_list = driver_seaons_df.values.tolist()
+
+    # Stores all races for a given driver for all seasons they particpated in
+    # Data is written to a Delta Table
+    for x in season_dates_list:
+        # Get just the raw dates
+        x = x[0]
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100)
+        endpoint = endpoint_location.get_races_endpoint()
+
+        # Fetch data from the API
+        data = api_client.fetch_data(endpoint=endpoint)
+
+        # Function will return polars dataframe
+        parser_data = parser.JSONPolarsParser(data)
+        races_df = parser_data.get_races_dataframe()
+
+        #Write data to a delta lake table
+        write_deltalake('./landing_zone/races/', races_df, mode='append')
+
+        # Sleep so the API doesnt block our request
+        time.sleep(5)
+
 # Get all seasons for the driver
 #get_season_data()
 #get_driver_data()
+get_races_data()
 
-# Get all seasons for the given driver
-driver_seaons_df = db.execute_query(f"SELECT DISTINCT Season FROM DRIVERS WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
-
-driver_id_df = db.execute_query(f"SELECT DISTINCT driverId FROM DRIVERS WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
-
-driver_id = [x for x in driver_id_df['driverId']]
-
-endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=100)
-endpoint = endpoint_location.get_races_endpoint()
-
-# Fetch data from the API
-data = api_client.fetch_data(endpoint=endpoint)
-
-data =parser.JSONPolarsParser(data)
-races_df = data.get_races_dataframe()
-
-print(races_df)
+result = db.execute_query("SELECT * FROM delta_scan('./landing_zone/races')")
+print(result)

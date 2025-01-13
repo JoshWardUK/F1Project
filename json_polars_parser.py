@@ -77,32 +77,37 @@ class JSONPolarsParser:
 
     def get_races_dataframe(self):
 
+        """
+        This extracts the values from the JSON feed. 
+        We convert None/NULL values to N/A for the Delta Table
+        """
+
         races = self.data["MRData"]["RaceTable"]["Races"]
         race_data = []
 
         for race in races:
             race_data.append({
-                "season": race["season"],
-                "round": race["round"],
-                "raceName": race["raceName"],
-                "circuitId": race["Circuit"]["circuitId"],
-                "circuitName": race["Circuit"]["circuitName"],
-                "lat": race["Circuit"]["Location"]["lat"],
-                "long": race["Circuit"]["Location"]["long"],
-                "locality": race["Circuit"]["Location"]["locality"],
-                "country": race["Circuit"]["Location"]["country"],
-                "raceDate": race["date"],
-                "raceTime": race["time"],
-                "fp1Date": race.get("FirstPractice", {}).get("date"),
-                "fp1Time": race.get("FirstPractice", {}).get("time"),
-                "fp2Date": race.get("SecondPractice", {}).get("date"),
-                "fp2Time": race.get("SecondPractice", {}).get("time"),
-                "fp3Date": race.get("ThirdPractice", {}).get("date"),
-                "fp3Time": race.get("ThirdPractice", {}).get("time"),
-                "qualifyingDate": race.get("Qualifying", {}).get("date"),
-                "qualifyingTime": race.get("Qualifying", {}).get("time"),
-                "sprintDate": race.get("Sprint", {}).get("date"),
-                "sprintTime": race.get("Sprint", {}).get("time"),
+                "season": race.get("season", "N/A"),
+                "round": race.get("round", "N/A"),
+                "raceName": race.get("raceName", "N/A"),
+                "circuitId": race["Circuit"].get("circuitId", "N/A"),
+                "circuitName": race["Circuit"].get("circuitName", "N/A"),
+                "lat": race["Circuit"]["Location"].get("lat", "N/A"),
+                "long": race["Circuit"]["Location"].get("long", "N/A"),
+                "locality": race["Circuit"]["Location"].get("locality", "N/A"),
+                "country": race["Circuit"]["Location"].get("country", "N/A"),
+                "raceDate": race.get("date", "N/A"),
+                "raceTime": race.get("time", "N/A"),
+                "fp1Date": race.get("FirstPractice", {}).get("date", "N/A"),
+                "fp1Time": race.get("FirstPractice", {}).get("time", "N/A"),
+                "fp2Date": race.get("SecondPractice", {}).get("date", "N/A"),
+                "fp2Time": race.get("SecondPractice", {}).get("time", "N/A"),
+                "fp3Date": race.get("ThirdPractice", {}).get("date", "N/A"),
+                "fp3Time": race.get("ThirdPractice", {}).get("time", "N/A"),
+                "qualifyingDate": race.get("Qualifying", {}).get("date", "N/A"),
+                "qualifyingTime": race.get("Qualifying", {}).get("time", "N/A"),
+                "sprintDate": race.get("Sprint", {}).get("date", "N/A"),
+                "sprintTime": race.get("Sprint", {}).get("time", "N/A"),
             })
 
         df = pl.DataFrame(race_data)
