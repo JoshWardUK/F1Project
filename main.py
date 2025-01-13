@@ -99,7 +99,8 @@ def get_driver_data():
 def get_races_data():
 
     """
-    Save race data into a Delta table
+    Save race data into a Delta table. DuckDB is not suitable given the schema can change. 
+    Delta Tables are much more flexible for this use case.
     """
 
     # Step 3 - Get Races Data
