@@ -12,6 +12,8 @@ from deltalake.writer import write_deltalake
 import duckdb as db
 import polars as pl
 
+"""
+
 api_url = "https://api.jolpi.ca/ergast/f1"
 
 # Create API Client Object
@@ -49,6 +51,8 @@ data = api_client.fetch_data(endpoint=endpoint)
 parser_data = parser.JSONPolarsParser(data)
 drivers_df = parser_data.get_driverstandings_dataframe()
 
+#Read delta tables using duckdb
+
 delta_table_path = 'deltaTable/'
 
 write_deltalake('./my_delta_table', seasons_df, mode='append')
@@ -61,13 +65,11 @@ write_deltalake('./my_delta_table', seasons_df, mode='append')
 
 #print(result)
 
+"""
 
-df3 = db.query("""
-SELECT *
-FROM delta_scan('./my_delta_table/')
-                  """).df()
+#df3 = db.query("""SELECT * FROM delta_scan('./my_delta_table/') """).df()
 
-print(df3)
+#print(df3)
 
 """
 db = dc.DatabaseConnection("example.db")
@@ -126,3 +128,49 @@ for season in root.MRData.SeasonTable.Seasons:
     print(f"Season: {season.season}, URL: {season.url}")
 
 """
+
+# Create Iceberg table and read using duckdb
+import duckdb
+from pyiceberg.catalog.sql import SqlCatalog
+import pyarrow as pa
+import os
+import shutil
+import sqlite3
+
+name_space = 'demo_db'
+
+warehouse_path = "./icehouse"
+catalog = SqlCatalog(
+    name_space,
+    **{
+        "uri": f"sqlite:///{warehouse_path}/icyhot.db",
+        "warehouse": f"file://{warehouse_path}",
+    },
+)
+
+# create a namespace for Iceberg
+catalog.create_namespace(name_space)
+
+pytable = duckdb.sql("SELECT * FROM test.json").arrow()
+
+duckdb_conn = duckdb.connect('test.db',read_only=False)
+
+table = catalog.create_table("demo_db.air_quality", schema=pytable.schema,)
+
+table.append(pytable)
+
+table.scan().to_duckdb('air',connection=duckdb_conn)
+
+x = duckdb_conn.execute("CREATE TABLE tbl_air AS SELECT * FROM air").fetchall()
+x = duckdb_conn.execute("SELECT * FROM tbl_air").fetchall()
+
+
+print(x)
+
+duckdb_conn.close()
+
+
+
+duckdb_conn1 = duckdb.connect('test.db',read_only=False)
+x = duckdb_conn1.execute("SELECT * FROM tbl_air").fetchall()
+print(x)

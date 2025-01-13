@@ -1,3 +1,7 @@
 # ignore ALL .log files
 *.db
 __pycache__
+scratchpad.py
+test.db
+test.json
+icehouse

@@ -74,3 +74,36 @@ class JSONPolarsParser:
 
         # Step 3: Display the DataFrame
         return df
+
+    def get_races_dataframe(self):
+
+        races = self.data["MRData"]["RaceTable"]["Races"]
+        race_data = []
+
+        for race in races:
+            race_data.append({
+                "season": race["season"],
+                "round": race["round"],
+                "raceName": race["raceName"],
+                "circuitId": race["Circuit"]["circuitId"],
+                "circuitName": race["Circuit"]["circuitName"],
+                "lat": race["Circuit"]["Location"]["lat"],
+                "long": race["Circuit"]["Location"]["long"],
+                "locality": race["Circuit"]["Location"]["locality"],
+                "country": race["Circuit"]["Location"]["country"],
+                "raceDate": race["date"],
+                "raceTime": race["time"],
+                "fp1Date": race.get("FirstPractice", {}).get("date"),
+                "fp1Time": race.get("FirstPractice", {}).get("time"),
+                "fp2Date": race.get("SecondPractice", {}).get("date"),
+                "fp2Time": race.get("SecondPractice", {}).get("time"),
+                "fp3Date": race.get("ThirdPractice", {}).get("date"),
+                "fp3Time": race.get("ThirdPractice", {}).get("time"),
+                "qualifyingDate": race.get("Qualifying", {}).get("date"),
+                "qualifyingTime": race.get("Qualifying", {}).get("time"),
+                "sprintDate": race.get("Sprint", {}).get("date"),
+                "sprintTime": race.get("Sprint", {}).get("time"),
+            })
+
+        df = pl.DataFrame(race_data)
+        return df

@@ -26,3 +26,9 @@ class APIEndpoints:
             return f"{self.year}/driverstandings/?limit={self.limit}"
         else:
             return f"{self.year}/driverstandings/?limit=1"
+    
+    def get_races_endpoint(self):
+        if self.limit:
+            return f"{self.year}/races/?limit={self.limit}"
+        else:
+            return f"{self.year}/races/?limit=1"
