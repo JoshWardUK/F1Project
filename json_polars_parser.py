@@ -112,3 +112,35 @@ class JSONPolarsParser:
 
         df = pl.DataFrame(race_data)
         return df
+
+    def get_results_dataframe(self):
+        races = self.data["MRData"]["RaceTable"]["Races"]
+        results_data = []
+
+        for race in races:
+            for result in race.get("Results", []):
+                results_data.append({
+                    "season": race.get("season", "N/A"),
+                    "round": race.get("round", "N/A"),
+                    "raceName": race.get("raceName", "N/A"),
+                    "circuitId": race["Circuit"].get("circuitId", "N/A"),
+                    "circuitName": race["Circuit"].get("circuitName", "N/A"),
+                    "date": race.get("date", "N/A"),
+                    "time": race.get("time", "N/A"),
+                    "driverId": result["Driver"].get("driverId", "N/A"),
+                    "driverName": f'{result["Driver"].get("givenName", "N/A")} {result["Driver"].get("familyName", "N/A")}',
+                    "constructorId": result["Constructor"].get("constructorId", "N/A"),
+                    "constructorName": result["Constructor"].get("name", "N/A"),
+                    "grid": result.get("grid", "N/A"),
+                    "position": result.get("position", "N/A"),
+                    "points": result.get("points", "N/A"),
+                    "laps": result.get("laps", "N/A"),
+                    "status": result.get("status", "N/A"),
+                    "time": result.get("Time", {}).get("time", "N/A"),
+                    "fastestLap": result.get("FastestLap", {}).get("lap", "N/A"),
+                    "fastestLapTime": result.get("FastestLap", {}).get("Time", {}).get("time", "N/A"),
+                    "averageSpeed": result.get("FastestLap", {}).get("AverageSpeed", {}).get("speed", "N/A"),
+                })
+
+        df = pl.DataFrame(results_data)
+        return df

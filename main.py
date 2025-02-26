@@ -13,6 +13,7 @@ import polars as pl
 api_url = "https://api.jolpi.ca/ergast/f1"
 first_name = "Lewis"
 family_name = "Hamilton"
+driverid = 'hamilton'
 
 # Create API Client Object
 api_client = ac.APIClient(base_url=api_url)
@@ -25,10 +26,14 @@ db.connect()
 
 
 def get_season_data():
+    
+    """
+    Get Season Data and load into Delta Table
+    """
     # Step 1 - Get Season Data
 
     # Call endpoint with the year - this is so we can get the total
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=None)
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=None, round=0)
     endpoint = endpoint_location.get_seasons_endpoint()
 
     # Fetch data from the API
@@ -38,7 +43,7 @@ def get_season_data():
     total = hp.get_total_from_json(data)
 
     # Use total to pass through to the limit for the API Call. 
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=total)
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=total,round=0)
     endpoint = endpoint_location.get_seasons_endpoint()
 
     # Fetch data from the API
@@ -48,37 +53,29 @@ def get_season_data():
     data =parser.JSONPolarsParser(data)
     seasons_df = data.get_season_dataframe()
 
-    # Create DuckDB table for seasons
-    # TODO: - only create table if one does not exist
-    db.create_table_from_dataframe("seasons", seasons_df)
-
-    # Get all of seasons and save as a list
-    season_dates = db.execute_query("SELECT DISTINCT Season FROM seasons")
-    season_dates_list = season_dates.values.tolist()
-
-    return season_dates_list
+    #Write data to a delta lake table
+    write_deltalake('./landing_zone/seasons/', seasons_df, mode='append')
 
 def get_driver_data():
 
+    """
+    Driver Data is a snapshot at the end of the season. Load into Delta Table
+    TODO: Get standings from each round
+    TODO: If seasons has started but no races - handle this scenario. Currently the pipeline will fail.
+    """
+
     # Step 2 - Get Driver Data
 
-    # This chunck of code will Create a Drivers table and then Truncate the Drivers table
-    # TODO: Only run this code if the drivers tabe does not exist - if it does exist truncate the table
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2024, limit=100)
-    endpoint = endpoint_location.get_driverstandings_endpoint()
-    data = api_client.fetch_data(endpoint=endpoint)
-    data =parser.JSONPolarsParser(data)
-    drivers_df = data.get_driverstandings_dataframe()
-    db.create_table_from_dataframe("drivers", drivers_df)
-    db.execute_query("TRUNCATE DRIVERS")
-
-    season_dates_list = get_season_data()
+    # Get all of seasons and save as a list
+    season_dates = db.execute_query("SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON != 2025")
+    season_dates_list = season_dates.values.tolist()
 
     # Stores all driver standings into a table for every season
     for x in season_dates_list:
         # Get just the raw dates
         x = x[0]
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100)
+        print(f"Downloading Driver data for Year {x}")
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=0)
         endpoint = endpoint_location.get_driverstandings_endpoint()
 
         # Fetch data from the API
@@ -88,30 +85,25 @@ def get_driver_data():
         parser_data = parser.JSONPolarsParser(data)
         drivers_df = parser_data.get_driverstandings_dataframe()
 
-        #Register dataframe with duckdb
-        db.register_dataframe('drivers_df', drivers_df)
-        
-        # Access Dataframe from DuckDB
-        db.execute_query("INSERT INTO drivers SELECT * FROM drivers_df")
+        #Write data to a delta lake table
+        write_deltalake('./landing_zone/drivers/', drivers_df, mode='append')
 
-        time.sleep(5)
+        # Sleep so the API doesnt block our request
+        time.sleep(2)
+
 
 def get_races_data():
 
     """
     Save race data into a Delta table. DuckDB is not suitable given the schema can change. 
     Delta Tables are much more flexible for this use case.
+    Pull Race data only for the driver we want to analyse.
     """
 
     # Step 3 - Get Races Data
 
     # Get all seasons for the given driver
-    driver_seaons_df = db.execute_query(f"SELECT DISTINCT Season FROM DRIVERS WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
-
-    # Use if we need driverid
-    #driver_id_df = db.execute_query(f"SELECT DISTINCT driverId FROM DRIVERS WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
-    #driver_id = [x for x in driver_id_df['driverId']]
-
+    driver_seaons_df = db.execute_query(f"SELECT DISTINCT Season FROM delta_scan('./landing_zone/drivers/') WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
     season_dates_list = driver_seaons_df.values.tolist()
 
     # Stores all races for a given driver for all seasons they particpated in
@@ -119,7 +111,8 @@ def get_races_data():
     for x in season_dates_list:
         # Get just the raw dates
         x = x[0]
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100)
+        print(f"Downloading Race Data for Driver: {first_name} {family_name} & Year: {x}")
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=1)
         endpoint = endpoint_location.get_races_endpoint()
 
         # Fetch data from the API
@@ -133,12 +126,42 @@ def get_races_data():
         write_deltalake('./landing_zone/races/', races_df, mode='append')
 
         # Sleep so the API doesnt block our request
-        time.sleep(5)
+        time.sleep(2)
 
+
+def get_results_data():
+
+    # Step 4 - Get Races Data
+    
+    # Get all seasons for the given driver
+    result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
+                         delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
+    season_dates_list = result.values.tolist()
+
+    for f1_year, f1_round in season_dates_list:
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=400, round=f1_round)
+        endpoint = endpoint_location.get_results_endpoint()
+        print(f"Downloading Results Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
+
+        # Fetch data from the API
+        data = api_client.fetch_data(endpoint=endpoint)
+
+        # Function will return polars dataframe
+        parser_data = parser.JSONPolarsParser(data)
+        results_df = parser_data.get_results_dataframe()
+
+        #Write data to a delta lake table
+        write_deltalake('./landing_zone/results/', results_df, mode='append')
+
+        # Sleep so the API doesnt block our request
+        time.sleep(2)
+        
 # Get all seasons for the driver
 #get_season_data()
 #get_driver_data()
-get_races_data()
+#get_races_data()
+get_results_data()
 
-result = db.execute_query("SELECT * FROM delta_scan('./landing_zone/races')")
-print(result)
+
+#season_dates = db.execute_query("SELECT * FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = '2025' ")
+#print(season_dates)
