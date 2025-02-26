@@ -3,8 +3,6 @@
 
 ### 🏁 **F1 Project** 🏎️
 
-![F1 Racing Banner](https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/F1_Logo.svg/1024px-F1_Logo.svg.png)
-
 Welcome to the **F1 Project**! This repository is designed to fetch, process, and analyze Formula 1 data using **DuckDB**, **Polars**, and **Delta Lake**.
 
 ## 📂 **Project Structure**
