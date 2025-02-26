@@ -10,14 +10,13 @@ Welcome to the **F1 Project**! This repository is designed to fetch, process, an
 ## 📂 **Project Structure**
 ```
 F1Project/
-│── data_pipeline/            # Scripts for fetching and processing data
-│── landing_zone/             # Raw API responses
-│── processed_data/           # Cleaned & transformed data
-│── queries/                  # SQL queries for analysis
-│── notebooks/                # Jupyter Notebooks for data exploration
-│── main.py                   # Main script to run the project
-│── requirements.txt           # Dependencies
-│── README.md                  # Project documentation
+├── api_client.py
+├── api_endpoints.py
+├── data_models.py
+├── database_connection.py
+├── helpers.py
+├── json_polars_parser.py
+└── main.py
 ```
 
 ---
