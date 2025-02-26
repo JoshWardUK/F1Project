@@ -10,6 +10,7 @@ from deltalake.writer import write_deltalake
 import duckdb as db
 import polars as pl
 
+
 api_url = "https://api.jolpi.ca/ergast/f1"
 first_name = "Lewis"
 family_name = "Hamilton"
@@ -156,12 +157,16 @@ def get_results_data():
         # Sleep so the API doesnt block our request
         time.sleep(2)
         
+
+#Remove delta table files
+hp.cleanup()
+
+
 # Get all seasons for the driver
 #get_season_data()
 #get_driver_data()
 #get_races_data()
-get_results_data()
+#get_results_data()
 
 
-#season_dates = db.execute_query("SELECT * FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = '2025' ")
-#print(season_dates)
+
