@@ -54,8 +54,8 @@ python main.py
 ```mermaid
 graph TD;
     A[Fetch Data from API] --> B[Parse JSON to Polars DataFrame]
-    B --> C[Write to Delta Table]
-    C --> D[Run Queries against Delts Lake Tables using DuckDB]
+    B --> C[Write to Delta Lake Table]
+    C --> D[Run Queries against Delta Lake Tables using DuckDB]
     D --> E[Visualise data using TBC Tool]
 ```
 
