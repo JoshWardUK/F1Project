@@ -53,11 +53,10 @@ python main.py
 ## 📊 **Database & Data Processing Flow**
 ```mermaid
 graph TD;
-    A[Fetch Data from API] --> B[Store Raw JSON in Landing Zone]
-    B --> C[Parse JSON to Polars DataFrame]
-    C --> D[Store in DuckDB]
-    D --> E[Run Queries]
-    E --> F[Export to Delta Lake]
+    A[Fetch Data from API] --> B[Parse JSON to Polars DataFrame]
+    B --> C[Write to Delta Table]
+    C --> D[Run Queries against Delts Lake Tables using DuckDB]
+    D --> E[Visualise data using TBC Tool]
 ```
 
 - **API Data** is stored in `landing_zone/`
