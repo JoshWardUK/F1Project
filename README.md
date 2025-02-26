@@ -1,4 +1,3 @@
-Here's a well-structured `README.md` for your **F1Project** repository, including diagrams and emojis to make it engaging. 🚀🏎️
 
 ---
 
