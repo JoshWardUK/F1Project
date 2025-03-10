@@ -162,7 +162,7 @@ def get_lap_data():
     # Step 5 - Get Lap Data
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
+                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
@@ -177,8 +177,12 @@ def get_lap_data():
         parser_data = parser.JSONPolarsParser(data)
         results_df = parser_data.get_lap_times_dataframe()
 
-        #Write data to a delta lake table
-        write_deltalake('./landing_zone/laps/', results_df, mode='append')
+        if results_df.shape == (0, 0):  
+            print("The DataFrame is empty!")
+        else:
+            #Write data to a delta lake table
+            print("Writing to delta lake table")
+            write_deltalake('./landing_zone/laps/', results_df, mode='append')
 
         # Sleep so the API doesnt block our request
         time.sleep(2)
@@ -192,6 +196,4 @@ def get_lap_data():
 #get_driver_data()
 #get_races_data()
 #get_results_data()
-get_lap_data()
-
-
+#get_lap_data()
