@@ -4,11 +4,12 @@ class APIEndpoints:
     A class to retrieve the api endpoints for jolpi
     """
 
-    def __init__(self, base_url, year, limit, round):
+    def __init__(self, base_url, year, limit, round, driverid):
         self.base_url = base_url
         self.year = year
         self.limit = limit
         self.round = round
+        self.driverid = driverid
 
     def get_seasons_endpoint(self):
         if self.limit:
@@ -39,3 +40,9 @@ class APIEndpoints:
             return f"{self.year}/{self.round}/results/?limit={self.limit}"
         else:
             return f"{self.year}/{self.round}/results/?limit=1"
+        
+    def get_laps_endpoint(self):
+        if self.limit:
+            return f"{self.year}/{self.round}/drivers/{self.driverid}/laps/?limit={self.limit}"
+        else:
+            return f"{self.year}/{self.round}/drivers/{self.driverid}/laps/?limit=1"

@@ -144,3 +144,36 @@ class JSONPolarsParser:
 
         df = pl.DataFrame(results_data)
         return df
+    
+    def get_lap_times_dataframe(self):
+        """
+        Convert lap timing JSON data into a Polars DataFrame.
+        Ensures that missing values are replaced with "N/A".
+        """
+        races = self.data["MRData"]["RaceTable"]["Races"]
+        lap_data = []
+
+        for race in races:
+            race_info = {
+                "season": race.get("season", "N/A"),
+                "round": race.get("round", "N/A"),
+                "raceName": race.get("raceName", "N/A"),
+                "circuitId": race["Circuit"].get("circuitId", "N/A"),
+                "circuitName": race["Circuit"].get("circuitName", "N/A"),
+                "raceDate": race.get("date", "N/A"),
+            }
+            
+            for lap in race.get("Laps", []):
+                lap_number = lap.get("number", "N/A")
+                for timing in lap.get("Timings", []):
+                    lap_data.append({
+                        **race_info,  # Merge race-level data
+                        "lapNumber": lap_number,
+                        "driverId": timing.get("driverId", "N/A"),
+                        "position": timing.get("position", "N/A"),
+                        "lapTime": timing.get("time", "N/A"),
+                    })
+
+        df = pl.DataFrame(lap_data)
+        return df
+        

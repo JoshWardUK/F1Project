@@ -34,7 +34,7 @@ def get_season_data():
     # Step 1 - Get Season Data
 
     # Call endpoint with the year - this is so we can get the total
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=None, round=0)
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=None, round=0,driverid='hamilton')
     endpoint = endpoint_location.get_seasons_endpoint()
 
     # Fetch data from the API
@@ -44,7 +44,7 @@ def get_season_data():
     total = hp.get_total_from_json(data)
 
     # Use total to pass through to the limit for the API Call. 
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=total,round=0)
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=total,round=0,driverid='hamilton')
     endpoint = endpoint_location.get_seasons_endpoint()
 
     # Fetch data from the API
@@ -76,7 +76,7 @@ def get_driver_data():
         # Get just the raw dates
         x = x[0]
         print(f"Downloading Driver data for Year {x}")
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=0,driverid='hamilton')
         endpoint = endpoint_location.get_driverstandings_endpoint()
 
         # Fetch data from the API
@@ -113,7 +113,7 @@ def get_races_data():
         # Get just the raw dates
         x = x[0]
         print(f"Downloading Race Data for Driver: {first_name} {family_name} & Year: {x}")
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=1)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=1,driverid='hamilton')
         endpoint = endpoint_location.get_races_endpoint()
 
         # Fetch data from the API
@@ -140,7 +140,7 @@ def get_results_data():
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=400, round=f1_round)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=400, round=f1_round,driverid='hamilton')
         endpoint = endpoint_location.get_results_endpoint()
         print(f"Downloading Results Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
 
@@ -156,10 +156,35 @@ def get_results_data():
 
         # Sleep so the API doesnt block our request
         time.sleep(2)
-        
+
+def get_lap_data():
+    
+    # Step 5 - Get Lap Data
+
+    result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
+                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
+    season_dates_list = result.values.tolist()
+
+    for f1_year, f1_round in season_dates_list:
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=400, round=f1_round,driverid='hamilton')
+        endpoint = endpoint_location.get_laps_endpoint()
+        print(f"Downloading Lap Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
+
+        # Fetch data from the API
+        data = api_client.fetch_data(endpoint=endpoint)
+
+        # Function will return polars dataframe
+        parser_data = parser.JSONPolarsParser(data)
+        results_df = parser_data.get_lap_times_dataframe()
+
+        #Write data to a delta lake table
+        write_deltalake('./landing_zone/laps/', results_df, mode='append')
+
+        # Sleep so the API doesnt block our request
+        time.sleep(2)
 
 #Remove delta table files
-hp.cleanup()
+#hp.cleanup()
 
 
 # Get all seasons for the driver
@@ -167,6 +192,6 @@ hp.cleanup()
 #get_driver_data()
 #get_races_data()
 #get_results_data()
-
+get_lap_data()
 
 
