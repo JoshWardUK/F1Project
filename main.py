@@ -187,9 +187,42 @@ def get_lap_data():
         # Sleep so the API doesnt block our request
         time.sleep(2)
 
+def get_pitstop_data():
+
+    # Step 6 - Get Pitstops Data
+
+    result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
+                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+    season_dates_list = result.values.tolist()
+
+    for f1_year, f1_round in season_dates_list:
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=400, round=f1_round,driverid='hamilton')
+        endpoint = endpoint_location.get_pitstops_endpoint()
+        print(f"Downloading Lap Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
+
+        # Fetch data from the API
+        data = api_client.fetch_data(endpoint=endpoint)
+
+        if data is not None:
+
+            # Function will return polars dataframe
+            parser_data = parser.JSONPolarsParser(data)
+            results_df = parser_data.get_pitstops_dataframe()
+
+            if results_df.shape == (0, 0):  
+                print("The DataFrame is empty!")
+            else:
+            #Write data to a delta lake table
+                print("Writing to delta lake table")
+                write_deltalake('./landing_zone/pitstops/', results_df, mode='append')
+        else:
+            print(f"Data not avaliable via the API for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
+
+        # Sleep so the API doesnt block our request
+        time.sleep(2)
+
 #Remove delta table files
 #hp.cleanup()
-
 
 # Get all seasons for the driver
 #get_season_data()
@@ -197,3 +230,4 @@ def get_lap_data():
 #get_races_data()
 #get_results_data()
 #get_lap_data()
+#get_pitstop_data()

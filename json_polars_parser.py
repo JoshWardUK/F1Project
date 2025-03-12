@@ -177,3 +177,30 @@ class JSONPolarsParser:
         df = pl.DataFrame(lap_data)
         return df
         
+    def get_pitstops_dataframe(self):
+        """Convert JSON data into a Polars DataFrame with pit stop details."""
+        
+        races = self.data["MRData"]["RaceTable"]["Races"]
+        pitstop_data = []
+
+        for race in races:
+            for pitstop in race.get("PitStops", []):  # Extract pit stops or empty list
+                pitstop_data.append({
+                    "season": race.get("season", "N/A"),
+                    "round": race.get("round", "N/A"),
+                    "raceName": race.get("raceName", "N/A"),
+                    "circuitId": race["Circuit"].get("circuitId", "N/A"),
+                    "circuitName": race["Circuit"].get("circuitName", "N/A"),
+                    "date": race.get("date", "N/A"),
+                    "time": race.get("time", "N/A"),
+                    "driverId": pitstop.get("driverId", "N/A"),
+                    "lap": pitstop.get("lap", "N/A"),
+                    "stop": pitstop.get("stop", "N/A"),
+                    "pitTime": pitstop.get("time", "N/A"),
+                    "duration": pitstop.get("duration", "N/A"),
+                })
+
+        # Convert to Polars DataFrame
+        df = pl.DataFrame(pitstop_data)
+        
+        return df
