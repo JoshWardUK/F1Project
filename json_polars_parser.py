@@ -204,3 +204,36 @@ class JSONPolarsParser:
         df = pl.DataFrame(pitstop_data)
         
         return df
+    
+    def get_driver_standings_dataframe(self):
+        """Convert JSON driver standings data to a Polars DataFrame, handling missing values."""
+        standings_lists = self.data["MRData"]["StandingsTable"].get("StandingsLists", [])
+        driver_standings = []
+
+        for standings_list in standings_lists:
+            for standing in standings_list.get("DriverStandings", []):
+                driver = standing.get("Driver", {})
+                constructor = standing.get("Constructors", [{}])[0]  # Take the first constructor
+                
+                driver_standings.append({
+                    "season": standings_list.get("season", "N/A"),
+                    "round": standings_list.get("round", "N/A"),
+                    "position": standing.get("position", "N/A"),
+                    "positionText": standing.get("positionText", "N/A"),
+                    "points": standing.get("points", "N/A"),
+                    "wins": standing.get("wins", "N/A"),
+                    "driverId": driver.get("driverId", "N/A"),
+                    "driverName": f"{driver.get('givenName', 'N/A')} {driver.get('familyName', 'N/A')}",
+                    "driverNationality": driver.get("nationality", "N/A"),
+                    "driverDOB": driver.get("dateOfBirth", "N/A"),
+                    "driverCode": driver.get("code", "N/A"),
+                    "driverUrl": driver.get("url", "N/A"),
+                    "constructorId": constructor.get("constructorId", "N/A"),
+                    "constructorName": constructor.get("name", "N/A"),
+                    "constructorNationality": constructor.get("nationality", "N/A"),
+                    "constructorUrl": constructor.get("url", "N/A"),
+                })
+
+        # Convert list to Polars DataFrame
+        df = pl.DataFrame(driver_standings)
+        return df

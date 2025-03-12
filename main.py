@@ -231,3 +231,31 @@ def get_pitstop_data():
 #get_results_data()
 #get_lap_data()
 #get_pitstop_data()
+
+result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
+                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+season_dates_list = result.values.tolist()
+
+for f1_year, f1_round in season_dates_list:
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=400, round=f1_round,driverid='hamilton')
+    endpoint = endpoint_location.get_pitstops_endpoint()
+    print(f"Downloading Driver Standings for Year: {f1_year} & Round: {f1_round}")
+
+    data = api_client.fetch_data(endpoint=endpoint)
+
+    if data is not None:
+    
+        parser_data = parser.JSONPolarsParser(data)
+        results_df = parser_data.get_driver_standings_dataframe()
+        
+        if results_df.shape == (0, 0):  
+                print("The DataFrame is empty!")
+        else:
+            #Write data to a delta lake table
+            #print("Writing to delta lake table")
+            results_df.write_delta('./landing_zone/driverstandings/', mode="append")
+    else:
+        print(f"Data not avaliable via the API for Driver Standings: Year: {f1_year} & Round: {f1_round}")
+
+        # Sleep so the API doesnt block our request
+    time.sleep(2)

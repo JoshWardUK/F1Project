@@ -52,3 +52,9 @@ class APIEndpoints:
             return f"{self.year}/{self.round}/drivers/{self.driverid}/pitstops/?limit={self.limit}"
         else:
             return f"{self.year}/{self.round}/drivers/{self.driverid}/pitstops/?limit=1"
+        
+    def get_pitstops_endpoint(self):
+        if self.limit:
+            return f"{self.year}/{self.round}/driverstandings/?limit={self.limit}"
+        else:
+            return f"{self.year}/{self.round}/driverstandings/?limit=1"
