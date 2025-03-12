@@ -5,8 +5,6 @@ import json_polars_parser as parser
 import data_models as dm
 import helpers as hp
 import time
-from deltalake import DeltaTable
-from deltalake.writer import write_deltalake
 import duckdb as db
 import polars as pl
 
