@@ -58,3 +58,9 @@ class APIEndpoints:
             return f"{self.year}/{self.round}/driverstandings/?limit={self.limit}"
         else:
             return f"{self.year}/{self.round}/driverstandings/?limit=1"
+    
+    def get_constructorstandings_endpoint(self):
+        if self.limit:
+            return f"{self.year}/{self.round}/constructorstandings/?limit={self.limit}"
+        else:
+            return f"{self.year}/{self.round}/constructorstandings/?limit=1"

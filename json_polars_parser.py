@@ -237,3 +237,34 @@ class JSONPolarsParser:
         # Convert list to Polars DataFrame
         df = pl.DataFrame(driver_standings)
         return df
+
+    def get_constructor_standings_dataframe(self):
+        """Converts JSON constructor standings into a Polars DataFrame with 'N/A' for null values."""
+    
+        standings_data = []
+        
+        # Navigate JSON structure to get Standings Lists
+        standings_lists = self.data["MRData"]["StandingsTable"].get("StandingsLists", [])
+
+        for standings in standings_lists:
+            season = standings.get("season", "N/A")
+            round_number = standings.get("round", "N/A")
+            
+            for constructor in standings.get("ConstructorStandings", []):
+                standings_data.append({
+                    "season": season,
+                    "round": round_number,
+                    "position": constructor.get("position", "N/A"),
+                    "positionText": constructor.get("positionText", "N/A"),
+                    "points": constructor.get("points", "N/A"),
+                    "wins": constructor.get("wins", "N/A"),
+                    "constructorId": constructor.get("Constructor", {}).get("constructorId", "N/A"),
+                    "constructorName": constructor.get("Constructor", {}).get("name", "N/A"),
+                    "constructorNationality": constructor.get("Constructor", {}).get("nationality", "N/A"),
+                    "constructorUrl": constructor.get("Constructor", {}).get("url", "N/A"),
+                })
+
+        # Convert to Polars DataFrame
+        df = pl.DataFrame(standings_data)
+
+        return df
