@@ -114,6 +114,7 @@ class JSONPolarsParser:
         return df
 
     def get_results_dataframe(self):
+       
         races = self.data["MRData"]["RaceTable"]["Races"]
         results_data = []
 
