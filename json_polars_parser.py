@@ -269,3 +269,108 @@ class JSONPolarsParser:
         df = pl.DataFrame(standings_data)
 
         return df
+    
+    def get_circuits_dataframe(self):
+        """
+        Convert circuit JSON data into a Polars DataFrame.
+        Ensures that missing values are replaced with "N/A".
+        """
+        circuits = self.data["MRData"]["CircuitTable"]["Circuits"]
+        circuit_data = []
+
+        for circuit in circuits:
+            location = circuit.get("Location", {})
+            circuit_data.append({
+                "circuitId": circuit.get("circuitId", "N/A"),
+                "circuitName": circuit.get("circuitName", "N/A"),
+                "url": circuit.get("url", "N/A"),
+                "locality": location.get("locality", "N/A"),
+                "country": location.get("country", "N/A"),
+                "latitude": location.get("lat", "N/A"),
+                "longitude": location.get("long", "N/A"),
+            })
+
+        df = pl.DataFrame(circuit_data)
+        return df
+    
+    def get_qualifying_dataframe(self):
+        """
+        Convert qualifying JSON data into a Polars DataFrame.
+        Ensures that missing values are replaced with "N/A".
+        """
+        races = self.data["MRData"]["RaceTable"]["Races"]
+        qualifying_data = []
+
+        for race in races:
+            race_info = {
+                "season": race.get("season", "N/A"),
+                "round": race.get("round", "N/A"),
+                "raceName": race.get("raceName", "N/A"),
+                "circuitId": race["Circuit"].get("circuitId", "N/A"),
+                "circuitName": race["Circuit"].get("circuitName", "N/A"),
+                "raceDate": race.get("date", "N/A"),
+            }
+
+            for result in race.get("QualifyingResults", []):
+                qualifying_data.append({
+                    **race_info,
+                    "driverId": result.get("Driver", {}).get("driverId", "N/A"),
+                    "code": result.get("Driver", {}).get("code", "N/A"),
+                    "givenName": result.get("Driver", {}).get("givenName", "N/A"),
+                    "familyName": result.get("Driver", {}).get("familyName", "N/A"),
+                    "constructor": result.get("Constructor", {}).get("name", "N/A"),
+                    "constructorId": result.get("Constructor", {}).get("constructorId", "N/A"),
+                    "position": result.get("position", "N/A"),
+                    "Q1": result.get("Q1", "N/A"),
+                    "Q2": result.get("Q2", "N/A"),
+                    "Q3": result.get("Q3", "N/A"),
+                })
+
+        return pl.DataFrame(qualifying_data)
+
+    def get_sprint_results_dataframe(self):
+        """
+        Convert sprint race JSON data into a Polars DataFrame.
+        Ensures that missing values are replaced with "N/A".
+        """
+        races = self.data["MRData"]["RaceTable"]["Races"]
+        sprint_data = []
+
+        for race in races:
+            race_info = {
+                "season": race.get("season", "N/A"),
+                "round": race.get("round", "N/A"),
+                "raceName": race.get("raceName", "N/A"),
+                "circuitId": race.get("Circuit", {}).get("circuitId", "N/A"),
+                "circuitName": race.get("Circuit", {}).get("circuitName", "N/A"),
+                "raceDate": race.get("date", "N/A"),
+                "raceTime": race.get("time", "N/A"),
+            }
+
+            for result in race.get("SprintResults", []):
+                driver = result.get("Driver", {})
+                constructor = result.get("Constructor", {})
+                time_info = result.get("Time", {})
+                fastest_lap = result.get("FastestLap", {})
+
+                sprint_data.append({
+                    **race_info,
+                    "driverId": driver.get("driverId", "N/A"),
+                    "code": driver.get("code", "N/A"),
+                    "givenName": driver.get("givenName", "N/A"),
+                    "familyName": driver.get("familyName", "N/A"),
+                    "constructor": constructor.get("name", "N/A"),
+                    "constructorId": constructor.get("constructorId", "N/A"),
+                    "grid": result.get("grid", "N/A"),
+                    "position": result.get("position", "N/A"),
+                    "positionText": result.get("positionText", "N/A"),
+                    "points": result.get("points", "N/A"),
+                    "laps": result.get("laps", "N/A"),
+                    "status": result.get("status", "N/A"),
+                    "sprintTime": time_info.get("time", "N/A"),
+                    "sprintTimeMillis": time_info.get("millis", "N/A"),
+                    "fastestLap": fastest_lap.get("lap", "N/A"),
+                    "fastestLapTime": fastest_lap.get("Time", {}).get("time", "N/A"),
+                })
+
+        return pl.DataFrame(sprint_data)

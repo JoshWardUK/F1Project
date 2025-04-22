@@ -66,3 +66,21 @@ class APIEndpoints:
             return f"{self.year}/{self.round}/constructorstandings/?limit={self.limit}"
         else:
             return f"{self.year}/{self.round}/constructorstandings/?limit=1"
+    
+    def get_circuits_endpoint(self):
+        if self.limit:
+            return f"{self.year}/circuits/?limit={self.limit}"
+        else:
+            return f"{self.year}/circuits/?limit=1"
+    
+    def get_qualifying_endpoint(self):
+        if self.limit:
+            return f"{self.year}/{self.round}/qualifying/?limit={self.limit}"
+        else:
+            return f"{self.year}/{self.round}/qualifying/?limit=1"
+    
+    def get_sprint_endpoint(self):
+        if self.limit:
+            return f"{self.year}/{self.round}/sprint/?limit={self.limit}"
+        else:
+            return f"{self.year}/{self.round}/sprint/?limit=1"
