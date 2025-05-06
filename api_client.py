@@ -1,4 +1,5 @@
 import requests
+import time
 
 class APIClient:
     """
@@ -22,15 +23,27 @@ class APIClient:
         :return: The data fetched from the API (also stored in memory)
         """
         url = f"{self.base_url}/{endpoint}"
-        try:
-            response = requests.get(url, params=params, headers=headers)
-            response.raise_for_status()  # Raise an exception for HTTP errors
-            self.data = response.json()  # Store data in memory
-            print("Data successfully fetched and stored in memory.")
-            return self.data
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching data from API: {e}")
-            return None
+
+        for attempt in range(5):  # 5 total attempts
+            try:
+                response = requests.get(url, params=params, headers=headers)
+                response.raise_for_status()  # Raise an exception for HTTP errors
+                self.data = response.json()  # Store data in memory
+                print("Data successfully fetched and stored in memory.")
+                return self.data
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 500:
+                    print(f"500 error on attempt {attempt + 1}. Retrying in 3 seconds...")
+                    time.sleep(3)
+                else:
+                    print(f"HTTP Error fetching data: {e}")
+                    break
+            except requests.exceptions.RequestException as e:
+                print(f"Request Exception fetching data: {e}")
+                break
+
+        print("Failed to fetch data after 3 attempts.")
+        return None
 
     def get_data(self):
         """

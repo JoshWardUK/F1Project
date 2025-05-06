@@ -7,6 +7,7 @@ import helpers as hp
 import time
 import duckdb as db
 import polars as pl
+import logging
 
 
 api_url = "https://api.jolpi.ca/ergast/f1"
@@ -66,7 +67,8 @@ def get_driver_data():
     # Step 2 - Get Driver Data
 
     # Get all of seasons and save as a list
-    season_dates = db.execute_query("SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON != 2025")
+    # Only get greater than what the user input is
+    season_dates = db.execute_query("SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = '2024'")
     season_dates_list = season_dates.values.tolist()
 
     # Stores all driver standings into a table for every season
@@ -92,8 +94,7 @@ def get_driver_data():
             drivers_df.write_delta('./landing_zone/drivers/', mode='append')
 
         # Sleep so the API doesnt block our request
-        time.sleep(2)
-
+        time.sleep(5)
 
 def get_races_data():
 
@@ -137,27 +138,55 @@ def get_results_data():
     # Step 4 - Get Races Data
     
     # Get all seasons for the given driver
-    result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                         delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
+    result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
+                            delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
-    for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
-        endpoint = endpoint_location.get_results_endpoint()
-        print(f"Downloading Results Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
+    # Pagination parameters
+    limit = 30  # Number of results per request
+    offset = 0  # Starting position
+    all_results = []  # Store all results
+    total = None
 
-        # Fetch data from the API
-        data = api_client.fetch_data(endpoint=endpoint)
 
-        # Function will return polars dataframe
-        parser_data = parser.JSONPolarsParser(data)
-        results_df = parser_data.get_results_dataframe()
+    for f1_year in season_dates_list:
+        season_year = f1_year[0]  # Extract season year
 
-        #Write data to a delta lake table
-        results_df.write_delta('./landing_zone/results/', mode='append')
+        # Reset offset for each season
+        offset = 0
+        total = None  # Reset total count for the new season
 
-        # Sleep so the API doesnt block our request
-        time.sleep(2)
+        while total is None or offset < total:
+            endpoint_location = ap.APIEndpoints(
+                base_url=api_url, 
+                year=season_year, 
+                limit=100, 
+                round=1, 
+                driverid='hamilton', 
+                offset=offset
+            )
+            endpoint = endpoint_location.get_results_endpoint()
+            print(f"Downloading Results Data for Driver: {first_name} {family_name} for Year: {season_year}, Offset: {offset}")
+
+            # Fetch data from the API
+            data = api_client.fetch_data(endpoint=endpoint)
+
+            if "MRData" in data:
+                total = int(data["MRData"].get("total", 0))  # Update total safely
+                print(f"Total results for {season_year}: {total}")
+
+                # Parse data using Polars
+                parser_data = parser.JSONPolarsParser(data)
+                results_df = parser_data.get_results_dataframe()
+
+                # Write data to a Delta Lake table
+                results_df.write_delta('./landing_zone/results/', mode='append')
+
+            # Move to the next offset page
+            offset += 100
+            print(f"Processed {season_year} with offset {offset}")
+
+            time.sleep(2)  # Respect API rate limits
 
 def get_lap_data():
     
@@ -375,71 +404,17 @@ def get_sprint_data():
         time.sleep(2)
 
 #Remove delta table files
-
-#hp.cleanup()
+logging.info("Starting F1 analysis...")
+hp.cleanup()
 # Get all seasons for the driver
-#get_season_data()
-#get_races_data()
-#get_driver_data()
-#get_results_data()
-#get_lap_data()
-#get_pitstop_data()
-#get_driverstandings_data()
-#get_constructorstandings_data()
-#get_circuits_data()
-#get_qualifying_data()
+get_season_data()
+get_driver_data()
+get_races_data()
+get_results_data()
+get_lap_data()
+get_pitstop_data()
+get_driverstandings_data()
+get_constructorstandings_data()
+get_circuits_data()
+get_qualifying_data()
 get_sprint_data()
-
-
-"""
-# Get all seasons for the given driver
-result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
-season_dates_list = result.values.tolist()
-
-# Pagination parameters
-limit = 30  # Number of results per request
-offset = 0  # Starting position
-all_results = []  # Store all results
-total = None
-
-
-for f1_year in season_dates_list:
-    season_year = f1_year[0]  # Extract season year
-
-    # Reset offset for each season
-    offset = 0
-    total = None  # Reset total count for the new season
-
-    while total is None or offset < total:
-        endpoint_location = ap.APIEndpoints(
-            base_url=api_url, 
-            year=season_year, 
-            limit=100, 
-            round=1, 
-            driverid='hamilton', 
-            offset=offset
-        )
-        endpoint = endpoint_location.get_results_endpoint()
-        print(f"Downloading Results Data for Driver: {first_name} {family_name} for Year: {season_year}, Offset: {offset}")
-
-        # Fetch data from the API
-        data = api_client.fetch_data(endpoint=endpoint)
-
-        if "MRData" in data:
-            total = int(data["MRData"].get("total", 0))  # Update total safely
-            print(f"Total results for {season_year}: {total}")
-
-            # Parse data using Polars
-            parser_data = parser.JSONPolarsParser(data)
-            results_df = parser_data.get_results_dataframe()
-
-            # Write data to a Delta Lake table
-            results_df.write_delta('./landing_zone/results/', mode='append')
-
-        # Move to the next offset page
-        offset += 100
-        print(f"Processed {season_year} with offset {offset}")
-
-        time.sleep(2)  # Respect API rate limits
-        """
