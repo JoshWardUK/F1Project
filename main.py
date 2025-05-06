@@ -8,7 +8,7 @@ import time
 import duckdb as db
 import polars as pl
 import logging
-
+import os
 
 api_url = "https://api.jolpi.ca/ergast/f1"
 first_name = "Lewis"
@@ -32,6 +32,15 @@ def get_season_data():
     """
     # Step 1 - Get Season Data
 
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_season_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/seasons/')
+
     # Call endpoint with the year - this is so we can get the total
     endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=None, round=0,driverid='hamilton', offset=0)
     endpoint = endpoint_location.get_seasons_endpoint()
@@ -53,8 +62,12 @@ def get_season_data():
     data =parser.JSONPolarsParser(data)
     seasons_df = data.get_season_dataframe()
 
-    #Write data to a delta lake table
+    # Write data to a delta lake table
     seasons_df.write_delta('./landing_zone/seasons/', mode='append')
+
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
 
 def get_driver_data():
 
@@ -65,6 +78,15 @@ def get_driver_data():
     """
 
     # Step 2 - Get Driver Data
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_driver_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/drivers/')
 
     # Get all of seasons and save as a list
     # Only get greater than what the user input is
@@ -95,6 +117,10 @@ def get_driver_data():
 
         # Sleep so the API doesnt block our request
         time.sleep(5)
+    
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
 
 def get_races_data():
 
@@ -105,6 +131,15 @@ def get_races_data():
     """
 
     # Step 3 - Get Races Data
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_race_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/races/')
 
     # Get all seasons for the given driver
     driver_seaons_df = db.execute_query(f"SELECT DISTINCT Season FROM delta_scan('./landing_zone/drivers/') WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
@@ -131,11 +166,23 @@ def get_races_data():
 
         # Sleep so the API doesnt block our request
         time.sleep(2)
-
+    
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
 
 def get_results_data():
 
     # Step 4 - Get Races Data
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_results_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/results/')
     
     # Get all seasons for the given driver
     result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
@@ -147,7 +194,6 @@ def get_results_data():
     offset = 0  # Starting position
     all_results = []  # Store all results
     total = None
-
 
     for f1_year in season_dates_list:
         season_year = f1_year[0]  # Extract season year
@@ -187,10 +233,23 @@ def get_results_data():
             print(f"Processed {season_year} with offset {offset}")
 
             time.sleep(2)  # Respect API rate limits
+    
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
 
 def get_lap_data():
     
     # Step 5 - Get Lap Data
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_lap_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/laps/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                         delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
@@ -217,10 +276,23 @@ def get_lap_data():
 
         # Sleep so the API doesnt block our request
         time.sleep(2)
+    
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
 
 def get_pitstop_data():
 
     # Step 6 - Get Pitstops Data
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_pitstop_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/pitstops/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                         delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
@@ -251,8 +323,20 @@ def get_pitstop_data():
 
         # Sleep so the API doesnt block our request
         time.sleep(2)
+    
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
 
 def get_driverstandings_data():
+
+    fn_name = 'get_driverstandings_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/driverstandings/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
@@ -282,7 +366,20 @@ def get_driverstandings_data():
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
+
 def get_constructorstandings_data():
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_constructorstandings_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/constructorstandings/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
@@ -312,7 +409,20 @@ def get_constructorstandings_data():
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
+
 def get_circuits_data():
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_circuits_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/circuits/')
 
     result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
@@ -343,7 +453,20 @@ def get_circuits_data():
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
+
 def get_qualifying_data():
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_qualifying_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/qualifying/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
@@ -373,7 +496,20 @@ def get_qualifying_data():
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
+
 def get_sprint_data():
+
+    # Check the checkpoint file to see if this function completed
+    fn_name = 'get_sprint_data'
+    checkpoint = hp.load_function_checkpoint()
+    if checkpoint.get(fn_name):
+        print(f"{fn_name} already completed. Skipping.")
+        return
+    # If its not completed then remove directory from landing zone
+    hp.clear_directory('./landing_zone/sprint/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season > '2020'") 
@@ -403,9 +539,18 @@ def get_sprint_data():
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
-#Remove delta table files
+    # Save to checkpoint file
+    hp.save_function_checkpoint(fn_name)
+    print(f"{fn_name} completed.")
+
 logging.info("Starting F1 analysis...")
-hp.cleanup()
+
+checkpoint_path = 'checkpoints/function_checkpoint.json'
+if os.path.exists(checkpoint_path):
+    print('Using checkpoint file to restart from failure...')
+else:
+    hp.cleanup()
+
 # Get all seasons for the driver
 get_season_data()
 get_driver_data()
@@ -418,3 +563,9 @@ get_constructorstandings_data()
 get_circuits_data()
 get_qualifying_data()
 get_sprint_data()
+
+# Remove checkpoint file if script completes
+checkpoint_path = 'checkpoints/function_checkpoint.json'
+if os.path.exists(checkpoint_path):
+    os.remove(checkpoint_path)
+    print("Checkpoint file removed — script completed successfully.")
