@@ -9,11 +9,18 @@ import duckdb as db
 import polars as pl
 import logging
 import os
+import sys
 
 api_url = "https://api.jolpi.ca/ergast/f1"
 first_name = "Lewis"
 family_name = "Hamilton"
 driverid = 'hamilton'
+year = 2024
+
+driver = sys.argv[1]
+season = sys.argv[2]
+
+print(f"Downloading data for {driver} & {season}")
 
 # Create API Client Object
 api_client = ac.APIClient(base_url=api_url)
@@ -90,7 +97,7 @@ def get_driver_data():
 
     # Get all of seasons and save as a list
     # Only get greater than what the user input is
-    season_dates = db.execute_query("SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = '2024'")
+    season_dates = db.execute_query(f"SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = {year}")
     season_dates_list = season_dates.values.tolist()
 
     # Stores all driver standings into a table for every season
@@ -549,6 +556,7 @@ checkpoint_path = 'checkpoints/function_checkpoint.json'
 if os.path.exists(checkpoint_path):
     print('Using checkpoint file to restart from failure...')
 else:
+    print('Removing landing_zone directory...')
     hp.cleanup()
 
 # Get all seasons for the driver
