@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: not_applicable  # DuckDB ignores this but it's required
+    tables:
+      - name: drivers
+        description: "Raw Delta table for F1 drivers"
