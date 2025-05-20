@@ -12,6 +12,12 @@ class APIEndpoints:
         self.driverid = driverid
         self.offset = offset
 
+    def get_seasons_endpoint_streamlit(self):
+        if self.limit:
+            return f"drivers/{self.driverid}/seasons/?limit={self.limit}"
+        else:
+            return f"drivers/{self.driverid}/seasons/?limit=1"
+        
     def get_seasons_endpoint(self):
         if self.limit:
             return f"seasons/?limit={self.limit}"

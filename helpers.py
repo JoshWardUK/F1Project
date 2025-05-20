@@ -23,6 +23,15 @@ def cleanup():
     else:
         print("Directory does not exist.")
 
+def cleanup_streamlit():
+
+    dir_path = "./landing_zone/streamlit/"
+    if os.path.exists(dir_path):
+        shutil.rmtree(dir_path)
+        print(f"Removed directory: {dir_path}")
+    else:
+        print("Directory does not exist.")
+
 def load_function_checkpoint(path='checkpoints/function_checkpoint.json'):
     if os.path.exists(path):
         with open(path, 'r') as f:

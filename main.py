@@ -11,16 +11,18 @@ import logging
 import os
 import sys
 
+# API Endpoint
 api_url = "https://api.jolpi.ca/ergast/f1"
-first_name = "Lewis"
-family_name = "Hamilton"
-driverid = 'hamilton'
-year = 2024
 
-driver = sys.argv[1]
-season = sys.argv[2]
+# Params passed through
+first_name = sys.argv[1]
+family_name = sys.argv[2]
+season = sys.argv[3]
 
-print(f"Downloading data for {driver} & {season}")
+# Lower family name
+driverid = family_name.lower()
+
+print(f"Downloading data for {first_name} {family_name} for season: {season}")
 
 # Create API Client Object
 api_client = ac.APIClient(base_url=api_url)
@@ -30,7 +32,6 @@ db = dc.DatabaseConnection("F1Data.db")
 
 # Connect to the database
 db.connect()
-
 
 def get_season_data():
     
@@ -49,7 +50,7 @@ def get_season_data():
     hp.clear_directory('./landing_zone/seasons/')
 
     # Call endpoint with the year - this is so we can get the total
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=None, round=0,driverid='hamilton', offset=0)
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=season, limit=None, round=0,driverid=driverid, offset=0)
     endpoint = endpoint_location.get_seasons_endpoint()
 
     # Fetch data from the API
@@ -59,7 +60,7 @@ def get_season_data():
     total = hp.get_total_from_json(data)
 
     # Use total to pass through to the limit for the API Call. 
-    endpoint_location = ap.APIEndpoints(base_url=api_url, year=2010, limit=total,round=0,driverid='hamilton', offset=0)
+    endpoint_location = ap.APIEndpoints(base_url=api_url, year=season, limit=total,round=0,driverid=driverid, offset=0)
     endpoint = endpoint_location.get_seasons_endpoint()
 
     # Fetch data from the API
@@ -97,7 +98,7 @@ def get_driver_data():
 
     # Get all of seasons and save as a list
     # Only get greater than what the user input is
-    season_dates = db.execute_query(f"SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = {year}")
+    season_dates = db.execute_query(f"SELECT DISTINCT season FROM delta_scan('./landing_zone/seasons/') WHERE SEASON = {season}")
     season_dates_list = season_dates.values.tolist()
 
     # Stores all driver standings into a table for every season
@@ -105,7 +106,7 @@ def get_driver_data():
         # Get just the raw dates
         x = x[0]
         print(f"Downloading Driver data for Year {x}")
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=0,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=0,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_driverstandings_year_endpoint()
 
         # Fetch data from the API
@@ -158,7 +159,7 @@ def get_races_data():
         # Get just the raw dates
         x = x[0]
         print(f"Downloading Race Data for Driver: {first_name} {family_name} & Year: {x}")
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=1,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=x, limit=100, round=1,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_races_endpoint()
 
         # Fetch data from the API
@@ -215,7 +216,7 @@ def get_results_data():
                 year=season_year, 
                 limit=100, 
                 round=1, 
-                driverid='hamilton', 
+                driverid=driverid, 
                 offset=offset
             )
             endpoint = endpoint_location.get_results_endpoint()
@@ -259,11 +260,11 @@ def get_lap_data():
     hp.clear_directory('./landing_zone/laps/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_laps_endpoint()
         print(f"Downloading Lap Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
 
@@ -302,11 +303,11 @@ def get_pitstop_data():
     hp.clear_directory('./landing_zone/pitstops/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+                        delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_pitstops_endpoint()
         print(f"Downloading Pitstop Data for Driver: {first_name} {family_name} for Year: {f1_year} & Round: {f1_round}")
 
@@ -346,11 +347,11 @@ def get_driverstandings_data():
     hp.clear_directory('./landing_zone/driverstandings/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_driverstandings_endpoint()
         print(f"Downloading Driver Standings for Year: {f1_year} & Round: {f1_round}")
 
@@ -389,11 +390,11 @@ def get_constructorstandings_data():
     hp.clear_directory('./landing_zone/constructorstandings/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_constructorstandings_endpoint()
         print(f"Downloading Constructor Standings for Year: {f1_year} & Round: {f1_round}")
 
@@ -432,12 +433,12 @@ def get_circuits_data():
     hp.clear_directory('./landing_zone/circuits/')
 
     result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year in season_dates_list:
         f1_year = f1_year[0]
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=0,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=0,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_circuits_endpoint()
         print(f"Downloading Circuit data for Year: {f1_year}")
 
@@ -476,11 +477,11 @@ def get_qualifying_data():
     hp.clear_directory('./landing_zone/qualifying/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season != 2025") 
+                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_qualifying_endpoint()
         print(f"Downloading Qualifying Data for Year: {f1_year} & Round: {f1_round}")
 
@@ -519,11 +520,11 @@ def get_sprint_data():
     hp.clear_directory('./landing_zone/sprint/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
-                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}' and b.season > '2020'") 
+                    delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
     for f1_year, f1_round in season_dates_list:
-        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid='hamilton', offset=0)
+        endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_sprint_endpoint()
         print(f"Downloading Sprint Data for Year: {f1_year} & Round: {f1_round}")
 
