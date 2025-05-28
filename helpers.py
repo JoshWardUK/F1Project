@@ -45,6 +45,13 @@ def save_function_checkpoint(fn_name, path='checkpoints/function_checkpoint.json
     with open(path, 'w') as f:
         json.dump(checkpoint, f)
 
+def save_function_checkpoint_season(key, value, path='checkpoints/function_checkpoint.json'):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    checkpoint = load_function_checkpoint(path)
+    checkpoint[key] = value
+    with open(path, 'w') as f:
+        json.dump(checkpoint, f)
+
 def clear_directory(path):
     if os.path.exists(path) and os.path.isdir(path):
         print(f"Clearing partial data in: {path}")

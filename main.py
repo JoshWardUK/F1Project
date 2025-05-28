@@ -75,6 +75,11 @@ def get_season_data():
 
     # Save to checkpoint file
     hp.save_function_checkpoint(fn_name)
+
+    # As its the first function call we also save the season here
+    hp.save_function_checkpoint_season('Season',season)
+    hp.save_function_checkpoint_season('Driver',driverid)
+
     print(f"{fn_name} completed.")
 
 def get_driver_data():
@@ -556,6 +561,18 @@ logging.info("Starting F1 analysis...")
 checkpoint_path = 'checkpoints/function_checkpoint.json'
 if os.path.exists(checkpoint_path):
     print('Using checkpoint file to restart from failure...')
+    checkpoint = hp.load_function_checkpoint()
+    checkpoint_file_season = checkpoint.get('Season')
+    checkpoint_file_driver= checkpoint.get('Driver')
+
+    # Remove checkpoint file if different seasons, so we trigger a full load
+    if checkpoint_file_season != season or checkpoint_file_driver != driverid:
+        checkpoint_path = 'checkpoints/function_checkpoint.json'
+        if os.path.exists(checkpoint_path):
+            os.remove(checkpoint_path)
+            print("Checkpoint file removed since the season or driver in the checkpoint file is different.")
+        # Remove Landing Zone
+        hp.cleanup
 else:
     print('Removing landing_zone directory...')
     hp.cleanup()
@@ -578,3 +595,5 @@ checkpoint_path = 'checkpoints/function_checkpoint.json'
 if os.path.exists(checkpoint_path):
     os.remove(checkpoint_path)
     print("Checkpoint file removed — script completed successfully.")
+
+exit(0)
