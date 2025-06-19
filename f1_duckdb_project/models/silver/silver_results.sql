@@ -1,5 +1,4 @@
 --models/staging/stg_results.sql
-
 SELECT
   
   season::varchar as season,
@@ -22,4 +21,4 @@ SELECT
   fastestLapTime::varchar as fastestLapTime,
   try_cast(averageSpeed as decimal) as averageSpeed
 
-FROM delta_scan('{{ get_delta_path("raw", "results") }}')  
+FROM {{ ref('bronze_results') }}

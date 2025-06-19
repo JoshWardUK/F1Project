@@ -1,9 +1,9 @@
 version: 2
 
 models:
-  - name: stg_races
+  - name: bronze_results
     description: Raw races table from delta
     columns:
-      - name: raceName
+      - name: season
         tests:
-          - not_null
+          - is_valid_year
