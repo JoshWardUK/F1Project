@@ -1,0 +1,73 @@
+version: 2
+
+models:
+  - name: dim_drivers
+    description: "Driver dimension derived from driver standings (IDs kept as text)."
+    columns:
+      - name: driver_id
+        tests: [not_null]
+      - name: given_name
+      - name: family_name
+
+  - name: dim_constructors
+    description: "Constructor dimension (latest snapshot by season/round from standings)."
+    columns:
+      - name: constructor_id
+        tests: [not_null, unique]
+
+  - name: dim_circuits
+    description: "Circuit dimension with geolocation."
+    columns:
+      - name: circuit_id
+        tests: [not_null, unique]
+      - name: circuit_name
+        tests: [not_null]
+
+  - name: dim_races
+    description: "Race info with raw date/time and parsed race timestamp."
+    columns:
+      - name: race_id
+        tests: [not_null, unique]
+      - name: circuit_id
+        tests:
+          - relationships:
+              to: ref('dim_circuits')
+              field: circuit_id
+
+  - name: fct_results
+    description: "Grand Prix results per driver (IDs kept as text)."
+    columns:
+      - name: driver_id
+        tests:
+          - relationships:
+              to: ref('dim_drivers')
+              field: driver_id
+      - name: constructor_id
+        tests:
+          - relationships:
+              to: ref('dim_constructors')
+              field: constructor_id
+
+  - name: fct_qualifying
+    description: "Qualifying results with Q1/Q2/Q3 raw time strings."
+    columns:
+      - name: driver_id
+        tests:
+          - relationships:
+              to: ref('dim_drivers')
+              field: driver_id
+
+  - name: fct_sprint_results
+    description: "Sprint race results including fastest lap details."
+
+  - name: fct_pit_stops
+    description: "Pit stop events with durations as raw strings."
+
+  - name: fct_lap_times
+    description: "Per-lap timings for each driver."
+
+  - name: dim_driver_standings
+    description: "Driver standings snapshot by season/round."
+
+  - name: dim_constructor_standings
+    description: "Constructor standings snapshot by season/round."
