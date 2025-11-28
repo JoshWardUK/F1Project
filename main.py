@@ -47,7 +47,7 @@ def get_season_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/seasons/')
+    #hp.clear_directory('./landing_zone/seasons/')
 
     # Call endpoint with the year - this is so we can get the total
     endpoint_location = ap.APIEndpoints(base_url=api_url, year=season, limit=None, round=0,driverid=driverid, offset=0)
@@ -99,7 +99,7 @@ def get_driver_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/drivers/')
+    #hp.clear_directory('./landing_zone/drivers/')
 
     # Get all of seasons and save as a list
     # Only get greater than what the user input is
@@ -152,7 +152,7 @@ def get_races_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/races/')
+    #hp.clear_directory('./landing_zone/races/')
 
     # Get all seasons for the given driver
     driver_seaons_df = db.execute_query(f"SELECT DISTINCT Season FROM delta_scan('./landing_zone/drivers/') WHERE givenName = '{first_name}' AND familyName = '{family_name}' ORDER BY SEASON ASC")
@@ -195,7 +195,7 @@ def get_results_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/results/')
+   #hp.clear_directory('./landing_zone/results/')
     
     # Get all seasons for the given driver
     result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
@@ -262,7 +262,7 @@ def get_lap_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/laps/')
+    #hp.clear_directory('./landing_zone/laps/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                         delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -305,7 +305,7 @@ def get_pitstop_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/pitstops/')
+    #hp.clear_directory('./landing_zone/pitstops/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                         delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -349,7 +349,7 @@ def get_driverstandings_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/driverstandings/')
+    #hp.clear_directory('./landing_zone/driverstandings/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -392,7 +392,7 @@ def get_constructorstandings_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/constructorstandings/')
+    #hp.clear_directory('./landing_zone/constructorstandings/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -435,7 +435,7 @@ def get_circuits_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/circuits/')
+    #hp.clear_directory('./landing_zone/circuits/')
 
     result = db.execute_query(f"SELECT distinct b.season FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -479,7 +479,7 @@ def get_qualifying_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/qualifying/')
+    #hp.clear_directory('./landing_zone/qualifying/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -522,7 +522,7 @@ def get_sprint_data():
         print(f"{fn_name} already completed. Skipping.")
         return
     # If its not completed then remove directory from landing zone
-    hp.clear_directory('./landing_zone/sprint/')
+    #hp.clear_directory('./landing_zone/sprint/')
 
     result = db.execute_query(f"SELECT distinct b.season,b.round FROM delta_scan('./landing_zone/drivers/') a INNER JOIN\
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
@@ -541,17 +541,19 @@ def get_sprint_data():
             results_df = parser_data.get_sprint_results_dataframe()
             
             if results_df.shape == (0, 0):  
-                    print("The DataFrame is empty!")
+                print("The DataFrame is empty!")
             else:
                 #Write data to a delta lake table
                 #print("Writing to delta lake table")
                 results_df.write_delta('./landing_zone/sprint/', mode="append")
         else:
             print(f"Data not avaliable via the API for Sprint Data: Year: {f1_year} & Round: {f1_round}")
-
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
+    if os.path.isdir('./landing_zone/sprint/') == False:
+        df = pl.DataFrame({"id": [None]}, schema={"id": pl.Int64})
+        df.write_delta('./landing_zone/sprint/', mode='append')
     # Save to checkpoint file
     hp.save_function_checkpoint(fn_name)
     print(f"{fn_name} completed.")
@@ -572,10 +574,10 @@ if os.path.exists(checkpoint_path):
             os.remove(checkpoint_path)
             print("Checkpoint file removed since the season or driver in the checkpoint file is different.")
         # Remove Landing Zone
-        hp.cleanup
+        hp.cleanup()
 else:
     print('Removing landing_zone directory...')
-    hp.cleanup()
+    #hp.cleanup()
 
 # Get all seasons for the driver
 get_season_data()

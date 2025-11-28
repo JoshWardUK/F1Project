@@ -1,6 +1,7 @@
 {{ config(materialized='table', tags=['silver','fact']) }}
 
 select
+/*
   try_cast(season as integer)            as season_year,
   try_cast(round as integer)             as round,
   nullif(trim(racename), '')             as race_name,
@@ -31,4 +32,6 @@ select
 
   try_cast(fastestlap as integer)        as fastest_lap_number,
   nullif(trim(fastestlaptime), '')       as fastest_lap_time_raw
+  */
+  1
 from {{ ref('bronze_sprint') }}

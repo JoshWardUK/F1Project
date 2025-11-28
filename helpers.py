@@ -1,6 +1,8 @@
 import os
 import shutil
-import json 
+import json
+import glob
+
 
 def get_total_from_json(data):
     """
@@ -32,6 +34,26 @@ def cleanup_streamlit():
     else:
         print("Directory does not exist.")
 
+def cleanup_from_streamlit():
+
+    dir_path = "./landing_zone/"
+
+    dirs = ['circuits','constructorstandings','drivers','driverstandings','laps','pitstops','qualifying','races'
+    ,'results','seasons','sprint']
+
+    for dir in dirs:
+        dir_path_location=(dir_path + dir + '/')
+        if os.path.exists(dir_path_location):
+            shutil.rmtree(dir_path_location)
+            print(f"Removed directory: {dir_path_location}")
+        else:
+            print("Directory does not exist.")
+
+    for file in glob.glob("f1_duckdb_project/F1metadata.ducklake*"):
+        os.remove(file)
+        print(f"Deleted: {file}")
+    return 1
+
 def load_function_checkpoint(path='checkpoints/function_checkpoint.json'):
     if os.path.exists(path):
         with open(path, 'r') as f:
@@ -58,3 +80,5 @@ def clear_directory(path):
         shutil.rmtree(path)
     else:
         print(f"Directory not found: {path}. Nothing to clear.")
+
+cleanup_from_streamlit()

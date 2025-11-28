@@ -13,3 +13,6 @@ icehouse
 /extension_data
 /images
 /logs
+/f1_duckdb_project/data
+/f1_duckdb_project/f1*
+run_f1_stach.sh

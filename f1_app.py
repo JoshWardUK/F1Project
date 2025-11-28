@@ -67,6 +67,35 @@ if "process_app_state" not in st.session_state:
     st.session_state.process_app_state = 1
 if "dbt_app_state" not in st.session_state:
     st.session_state.dbt_app_state = 1
+ # Keep track of approval status
+if "approved" not in st.session_state:
+    st.session_state.approved = False
+
+
+@st.dialog("Confirm approval")
+def approval_dialog():
+    st.write("Are you sure you want to delete the datalake and landing files")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("✅ Approve"):
+            st.session_state.approved = True
+            result = hp.cleanup_from_streamlit()
+            if result == 1:
+                st.rerun()    # ✅ Close the dialog ONLY if successful
+            else:
+                st.error("❌ Unable to delete all files")
+    with col2:
+        if st.button("❌ Cancel"):
+            st.rerun()
+
+
+# 3. Show result on the main page
+if st.session_state.approved:
+    st.success("Datalake & Landing Zone Files Deleted ✅")
+
+if st.button(f"Delete all data from Datalake and Landing Zone"):
+    approval_dialog()
 
 # Load drivers
 driver_options = load_options()
