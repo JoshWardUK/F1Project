@@ -49,11 +49,6 @@ def cleanup_from_streamlit():
         else:
             print("Directory does not exist.")
 
-    for file in glob.glob("f1_duckdb_project/F1metadata.ducklake*"):
-        os.remove(file)
-        print(f"Deleted: {file}")
-    return 1
-
 def load_function_checkpoint(path='checkpoints/function_checkpoint.json'):
     if os.path.exists(path):
         with open(path, 'r') as f:
@@ -80,5 +75,3 @@ def clear_directory(path):
         shutil.rmtree(path)
     else:
         print(f"Directory not found: {path}. Nothing to clear.")
-
-cleanup_from_streamlit()

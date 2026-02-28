@@ -1,4 +1,6 @@
 import polars as pl
+from json_shredder import CSVShredder
+
 
 class JSONPolarsParser:
 
@@ -6,11 +8,12 @@ class JSONPolarsParser:
     A class to shred a response in JSON and return a neatly formatted polars dataframe
     """
 
-    def __init__(self, data):
+    def __init__(self, data, config_dir="configs"):        
         """
         Initialize the Parser
         """
         self.data = data
+        self.shredder = CSVShredder(config_dir)
 
     def get_season_dataframe(self):
         
@@ -38,6 +41,9 @@ class JSONPolarsParser:
 
         df = pl.DataFrame(constructor_standings)
         return df
+    
+    def get_constructor_standings_dataframes(self):
+        return self.shredder.shred(self.data, "constructor_standings")
     
     def get_driverstandings_dataframe(self):
 

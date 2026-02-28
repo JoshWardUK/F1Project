@@ -11,6 +11,7 @@ import altair as alt
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
+import api_gemini as llm
 
 api_url = "https://api.jolpi.ca/ergast/f1"
 api_client = ac.APIClient(base_url=api_url)
@@ -44,9 +45,9 @@ def get_season_data_app(driverid):
 @st.cache_data
 def load_options():
     con = duckdb.connect("F1Data.db")
-    drivers = con.execute("SELECT DISTINCT givenName || ' ' ||  familyName FROM drivers").fetchall()
+    drivers = con.execute("SELECT DISTINCT givenName || ' ' ||  familyName, driverid FROM drivers").fetchall()
     con.close()
-    return [row[0] for row in drivers]
+    return drivers
 
 @st.cache_data
 def get_years_for_driver():
@@ -102,19 +103,16 @@ driver_options = load_options()
 
 # Driver selection
 driver_placeholder = "Select a driver"
-param1 = st.selectbox("Driver", [driver_placeholder] + driver_options)
-
+param1 = st.selectbox("Driver", driver_options)
+name, driver_id = param1
 # Button: Fetch and save seasons
-if st.button(f"Get Seasons for {param1}"):
-    if param1 != driver_placeholder:
+if st.button(f"Get Seasons for {name}"):
+    if name != driver_placeholder:
         hp.cleanup_streamlit()
         try:
-            st.cache_data.clear()
-
-            st.session_state.first_name, st.session_state.family_name = param1.split(" ", 1)
+            st.session_state.first_name, st.session_state.family_name = name.split(" ", 1)
             st.session_state.driverid = st.session_state.family_name.lower()
-
-            get_season_data_app(st.session_state.driverid)
+            get_season_data_app(driver_id)
             st.session_state.years = get_years_for_driver()
         except Exception as e:
             st.error(f"Error: {e}")
@@ -122,7 +120,7 @@ if st.button(f"Get Seasons for {param1}"):
 # Year selection
 if st.session_state.years:
     year = st.selectbox("Select Year", st.session_state.years)
-    st.write(f"You selected {st.session_state.first_name} {st.session_state.family_name} for Season {year}")
+    st.write(f"You selected {name} for Season {year}")
 else:
     st.warning("No seasons loaded. Please select a driver and click 'Get Seasons'.")
 
@@ -132,7 +130,7 @@ if st.button("Run F1 Script with Logs"):
 
             # Start the external Python script
             process = subprocess.Popen(
-                 ["python", "-u", "main.py", st.session_state.first_name, st.session_state.family_name, year],
+                 ["python", "-u", "main.py", st.session_state.first_name, st.session_state.family_name, year, driver_id],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
@@ -190,46 +188,16 @@ if st.session_state.process_app_state == 1:
                     st.session_state.dbt_app_state=1
                     st.error(f"DBT run failed with return code {result.returncode}")
 
-if st.session_state.dbt_app_state==0:
-    con = duckdb.connect("F1Data.db")
-    f1_df = con.execute("SELECT raceName,driverId,points FROM stg_races where driverid = 'hamilton'").df()
-    chart = alt.Chart(f1_df).mark_line(point=True).encode(
-        x=alt.X("raceName:N", title="Race Track"),
-        y=alt.Y("points:Q", title="Points Scored"),
-        color="driverId:N",
-        tooltip=["raceName", "driverId", "points"]
-    ).properties(title="Driver Points per Race")
 
-    st.altair_chart(chart, use_container_width=True)
+user_query = st.text_input("Ask a question...")
 
-    f1_pl_df = con.execute("SELECT raceName,driverId,points FROM stg_races").pl()
-
-    pivoted = f1_pl_df.pivot(
-    values="points",
-    index="driverId",
-    columns="raceName"
-    ).fill_null(0)
-
-    df_pca_input = pivoted.to_pandas().set_index("driverId").fillna(0)
-
-    # Standardize the data
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(df_pca_input)
-
-    # Run PCA
-    pca = PCA(n_components=2)
-    components = pca.fit_transform(scaled_data)
-
-    # Add components back to a DataFrame
-    df_pca_result = pd.DataFrame(components, columns=["PC1", "PC2"], index=df_pca_input.index)
-
-    df_pca_result = df_pca_result.reset_index()
-
-    chart = alt.Chart(df_pca_result).mark_circle(size=100).encode(
-        x="PC1",
-        y="PC2",
-        tooltip="driverId",
-        color="driverId"
-    ).properties(title="PCA of Driver Performance Across Tracks")
-
-    st.altair_chart(chart, use_container_width=True)
+if st.button("Submit"):
+    if user_query.strip():
+        st.write(f"You asked: {user_query}")
+        sql_command=llm.llm_user_question(user_query)
+        st.write(f"The system will run the following query: {sql_command}")
+        result,summary=llm.llm_summarise(user_query,sql_command)
+        st.write(f"SQL Result: {result}")
+        st.write(f"The answer to your question is : {summary}")
+    else:
+        st.warning("Please type something before submitting.")

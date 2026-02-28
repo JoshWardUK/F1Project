@@ -1,0 +1,12 @@
+table_name,row_path,target_name,value_path,dtype,nullable,default
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],season,^1.season,Int32,false,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],round,^1.round,Int32,false,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],position,@.position,Int32,true,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],positionText,@.positionText,String,true,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],points,@.points,Float64,true,0
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],wins,@.wins,Int32,true,0
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],constructorId,@.Constructor.constructorId,String,false,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],constructorName,@.Constructor.name,String,false,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],constructorNationality,@.Constructor.nationality,String,true,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],constructorUrl,@.Constructor.url,String,true,
+constructor_standings,MRData.StandingsTable.StandingsLists[*].ConstructorStandings[*],schema_version,,String,false,v1

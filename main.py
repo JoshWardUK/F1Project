@@ -10,6 +10,7 @@ import polars as pl
 import logging
 import os
 import sys
+import schema_change as sch
 
 # API Endpoint
 api_url = "https://api.jolpi.ca/ergast/f1"
@@ -18,9 +19,7 @@ api_url = "https://api.jolpi.ca/ergast/f1"
 first_name = sys.argv[1]
 family_name = sys.argv[2]
 season = sys.argv[3]
-
-# Lower family name
-driverid = family_name.lower()
+driverid = sys.argv[4]
 
 print(f"Downloading data for {first_name} {family_name} for season: {season}")
 
@@ -398,6 +397,16 @@ def get_constructorstandings_data():
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
+    delta_path = "/Users/joshuaward/Documents/Data-Engineering/F1Project/F1Project/raw/constructorstandings"
+
+    # Capture starting version BEFORE writes
+    try:
+        dt = sch.DeltaTable(delta_path)
+        start_version = dt.version()
+    except Exception:
+        dt = None
+        start_version = None  # table doesn't exist yet
+
     for f1_year, f1_round in season_dates_list:
         endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_constructorstandings_endpoint()
@@ -405,23 +414,37 @@ def get_constructorstandings_data():
 
         data = api_client.fetch_data(endpoint=endpoint)
 
+        # Add metadata (does not interfere with JSON structure)
+
+        
         if data is not None:
         
             parser_data = parser.JSONPolarsParser(data)
-            results_df = parser_data.get_constructor_standings_dataframe()
+            # Save raw file into the raw folder - we will compare schemas here
+            pl.DataFrame(data).write_delta('./raw/constructorstandings/', mode="append",delta_write_options={"schema_mode": "merge"} )
+
+            results_df = parser_data.get_constructor_standings_dataframes()
             
             if results_df.shape == (0, 0):  
                     print("The DataFrame is empty!")
             else:
                 #Write data to a delta lake table
                 #print("Writing to delta lake table")
-                results_df.write_delta('./landing_zone/constructorstandings/', mode="append")
+                results_df.write_delta('./landing_zone/constructorstandings/', mode="append",delta_write_options={"schema_mode": "merge"} )
         else:
             print(f"Data not avaliable via the API for Constructor Standings: Year: {f1_year} & Round: {f1_round}")
 
             # Sleep so the API doesnt block our request
         time.sleep(2)
 
+    # Compare end-of-run schema to start-of-run schema
+    dt = sch.DeltaTable(delta_path)
+    latest_version = dt.version()
+
+    if start_version is None:
+        print(f"ℹ️ Delta table created this run. Latest version = {latest_version}")
+    else:
+        result = sch.compare_delta_versions(delta_path, start_version, latest_version)
     # Save to checkpoint file
     hp.save_function_checkpoint(fn_name)
     print(f"{fn_name} completed.")
@@ -579,18 +602,19 @@ else:
     print('Removing landing_zone directory...')
     #hp.cleanup()
 
+
 # Get all seasons for the driver
 get_season_data()
-get_driver_data()
-get_races_data()
-get_results_data()
-get_lap_data()
-get_pitstop_data()
-get_driverstandings_data()
+#get_driver_data()
+#get_races_data()
+#get_results_data()
+#get_lap_data()
+#get_pitstop_data()
+#get_driverstandings_data()
 get_constructorstandings_data()
-get_circuits_data()
-get_qualifying_data()
-get_sprint_data()
+#get_circuits_data()
+#get_qualifying_data()
+#get_sprint_data()
 
 # Remove checkpoint file if script completes
 checkpoint_path = 'checkpoints/function_checkpoint.json'
