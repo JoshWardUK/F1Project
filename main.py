@@ -354,6 +354,16 @@ def get_driverstandings_data():
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
+    delta_path = "./raw/driver_standings"
+
+    # Capture starting version BEFORE writes
+    try:
+        dt = sch.DeltaTable(delta_path)
+        start_version = dt.version()
+    except Exception:
+        dt = None
+        start_version = None  # table doesn't exist yet
+
     for f1_year, f1_round in season_dates_list:
         endpoint_location = ap.APIEndpoints(base_url=api_url, year=f1_year, limit=300, round=f1_round,driverid=driverid, offset=0)
         endpoint = endpoint_location.get_driverstandings_endpoint()
@@ -364,6 +374,8 @@ def get_driverstandings_data():
         if data is not None:
         
             parser_data = parser.JSONPolarsParser(data)
+            pl.DataFrame(data).write_delta('./raw/driver_standings/', mode="append",delta_write_options={"schema_mode": "merge"} )
+
             results_df = parser_data.get_driver_standings_dataframe()
             
             if results_df.shape == (0, 0):  
@@ -377,6 +389,15 @@ def get_driverstandings_data():
 
             # Sleep so the API doesnt block our request
         time.sleep(2)
+    
+    # Compare end-of-run schema to start-of-run schema
+    dt = sch.DeltaTable(delta_path)
+    latest_version = dt.version()
+
+    if start_version is None:
+        print(f"ℹ️ Delta table created this run. Latest version = {latest_version}")
+    else:
+        result = sch.compare_delta_versions(delta_path, start_version, latest_version)
 
     # Save to checkpoint file
     hp.save_function_checkpoint(fn_name)
@@ -397,7 +418,7 @@ def get_constructorstandings_data():
                     delta_scan('./landing_zone/races') b on a.season = b.season WHERE a.driverid = '{driverid}'") 
     season_dates_list = result.values.tolist()
 
-    delta_path = "/Users/joshuaward/Documents/Data-Engineering/F1Project/F1Project/raw/constructorstandings"
+    delta_path = "./raw/constructorstandings"
 
     # Capture starting version BEFORE writes
     try:
@@ -415,8 +436,6 @@ def get_constructorstandings_data():
         data = api_client.fetch_data(endpoint=endpoint)
 
         # Add metadata (does not interfere with JSON structure)
-
-        
         if data is not None:
         
             parser_data = parser.JSONPolarsParser(data)
@@ -610,8 +629,8 @@ get_season_data()
 #get_results_data()
 #get_lap_data()
 #get_pitstop_data()
-#get_driverstandings_data()
-get_constructorstandings_data()
+get_driverstandings_data()
+#get_constructorstandings_data()
 #get_circuits_data()
 #get_qualifying_data()
 #get_sprint_data()
